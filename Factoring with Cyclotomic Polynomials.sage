@@ -7,10 +7,10 @@ z = R.gens()[0]
 def calculate_eta_all(eta, aa, bb, m, k):
     eta_all = []
     for i in range(k):
-        temp = eta^(aa^i)
+        temp = eta**(aa**i)
         add = temp
         for _ in range((m-1)//k - 1):
-            add = add^bb
+            add = add**bb
             temp += add
         eta_all.append(temp)
     return eta_all
@@ -20,7 +20,7 @@ def calculate_irreducible_polynomial(eta_all, m):
     for i in range(k):
         h *= (y - eta_all[i].lift())
 
-    d = sum([x^i for i in range(m)])
+    d = sum([x**i for i in range(m)])
     f_irreducible = h % d
 
     return f_irreducible, d
@@ -33,8 +33,18 @@ def pad_polynomial_coefficients(f, m):
     
 def Factoring_with_Cyclotomic_Polynomials(k, n):
     
+    if k == 1:
+        print('k = 1')
+        a = 2
+        while True:
+            print('a =', a)
+            p = gcd(int(pow(a, n, n)-1), n)
+            if p > 2**20 and n % p == 0:
+                return p
+            a += 1
+
     Phi = cyclotomic_polynomial(k)
-    Psi = (z^k-1)//(cyclotomic_polynomial(k))
+    Psi = (z**k-1)//(cyclotomic_polynomial(k))
     print('Cyclotomic_Polynomials Phi:', Phi)
     print('Psi:', Psi)
     m = 1
@@ -46,11 +56,11 @@ def Factoring_with_Cyclotomic_Polynomials(k, n):
                 continue
 
             aa = primitive_root(m)
-            ff = x^m - 1
+            ff = x**m - 1
             Q = P.quo(ff)
             eta = Q.gens()[0]
             for bb in range(2, m):
-                if (bb^((m-1)//k)-1)//(bb-1) % m:
+                if (bb**((m-1)//k)-1)//(bb-1) % m:
                     continue
                 eta_all = calculate_eta_all(eta, aa, bb, m, k)
                 f_irreducible, d = calculate_irreducible_polynomial(eta_all, m)
@@ -64,18 +74,18 @@ def Factoring_with_Cyclotomic_Polynomials(k, n):
         eta0 = eta_all[0]
         eta0_pow = []
         for i in range(2, k):
-            eta0_pow_i = (eta0^i).lift().subs(x=z)
+            eta0_pow_i = (eta0**i).lift().subs(x=z)
             constant_term = eta0_pow_i.list()[0]
             if constant_term != 0:
                 dd = (d-1).subs(x=z)
                 eta0_pow_i = eta0_pow_i - constant_term - constant_term * dd
             eta0_pow.append(eta0_pow_i)
 
-        coeff = []
+        coefficients = []
         for i in range(k):
-            coeff.append(pad_polynomial_coefficients(eta_all[i].lift().subs(x=z), m))
+            coefficients.append(pad_polynomial_coefficients(eta_all[i].lift().subs(x=z), m))
 
-        A = matrix(QQ, coeff)
+        A = matrix(QQ, coefficients)
         terget = [[-1]*k, [1] + [0]*(k-1)]
         for i in range(k-2):
             terget.append(A.solve_left(vector(pad_polynomial_coefficients(eta0_pow[i], m))))
@@ -84,7 +94,7 @@ def Factoring_with_Cyclotomic_Polynomials(k, n):
 
         U.<w> = PolynomialRing(QQ)
         w = U.gens()[0]
-        eta1 = U(list((B^-1)[1]))
+        eta1 = U(list((B**-1)[1]))
         f = f_irreducible.subs(y=w)
         V = U.quo(f)
         eta1 = V(eta1)
@@ -92,7 +102,7 @@ def Factoring_with_Cyclotomic_Polynomials(k, n):
         C = matrix(QQ, k, k)
         C[0, 0] = 1
         for i in range(1, k):
-            tmp = eta1^i
+            tmp = eta1**i
             C[i] = pad_polynomial_coefficients(tmp, k)
 
         K.<s> = PolynomialRing(Zmod(n))
@@ -105,7 +115,7 @@ def Factoring_with_Cyclotomic_Polynomials(k, n):
         except:
             continue
         while True:
-            g = R.random_element(k-1)
+            g = R.random_element(k - 1)
             try:
                 kk, _, h = xgcd(f_ZZ, g)
                 h = inverse_mod(int(kk), n) * h
@@ -120,27 +130,28 @@ def Factoring_with_Cyclotomic_Polynomials(k, n):
         Psi_coefficients = Psi.coefficients()
         Psi_monomials = Psi.monomials()[::-1]
         if Psi_coefficients[0] < 0:
-            yy = h_Q^(-Psi_coefficients[0]) 
+            yy = h_Q**(-Psi_coefficients[0]) 
         else:
-            yy = g_Q^(Psi_coefficients[0]) 
+            yy = g_Q**(Psi_coefficients[0]) 
 
         for i in range(1, len(Psi_monomials)):
             if Psi_coefficients[i] < 0:
-                yy *= K_quo(list(vector(list(h_Q^(-Psi_coefficients[i]))) * Psi_monomials[i](sigma)))
+                yy *= K_quo(list(vector(list(h_Q**(-Psi_coefficients[i]))) * Psi_monomials[i](sigma)))
             else:
-                yy *= K_quo(list(vector(list(g_Q^(Psi_coefficients[i]))) * Psi_monomials[i](sigma)))
-        yy = yy^n
+                yy *= K_quo(list(vector(list(g_Q**(Psi_coefficients[i]))) * Psi_monomials[i](sigma)))
+        yy = yy**n
         if gcd(yy[1], n) > 2**20:
             return gcd(yy[1], n)
 
 
 if __name__ == "__main__":
     p = getPrime(512)
-    k = 9  # the k-th cyclotomic_polynomial
+    k = 4  # the k-th cyclotomic_polynomial
     Phi = cyclotomic_polynomial(k)
     q = Phi(p)
     r = getPrime(512*3)
+    r = 1
     n = p * q * r
     pp = Factoring_with_Cyclotomic_Polynomials(k, n)
     assert not n % pp
-    print('factor found:', pp)
+    print('factor is found:', pp)
